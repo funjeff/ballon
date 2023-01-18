@@ -38,7 +38,7 @@ namespace StarterAssets
 
         [Space(10)]
         [Tooltip("Time required to pass before being able to jump again. Set to 0f to instantly jump again")]
-        public float JumpTimeout = 0.50f;
+        public float JumpTimeout = 0.0f;
 
         [Tooltip("Time required to pass before entering the fall state. Useful for walking down stairs")]
         public float FallTimeout = 0.15f;
@@ -344,6 +344,12 @@ namespace StarterAssets
                 _verticalVelocity += Gravity * Time.deltaTime;
             }
         }
+
+        //used to make the player go up without them jumping ie hit ballon so go up or something of that sort
+        public void goUp (float howMuch){
+            _verticalVelocity = Mathf.Sqrt(howMuch * -2f * Gravity);
+        }
+
 
         private static float ClampAngle(float lfAngle, float lfMin, float lfMax)
         {

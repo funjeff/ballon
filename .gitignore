@@ -2,3 +2,9 @@ Ballon/Library/
 Ballon/Logs/
 Ballon/Temp/
 Ballon/UserSettings/
+Ballon/.vscode/
+Ballon/Assembly-CSharp.csproj
+Ballon/Assembly-CSharp-Editor.csproj
+Ballon/Ballon.sln
+Ballon/obj/
+Ballon/.vs/

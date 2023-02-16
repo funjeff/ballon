@@ -81,6 +81,15 @@ namespace StarterAssets
 
                 
 
+
+        // BALLOON STUFF
+        // [SerializeField] Ballon balloon;
+        // public int numBalloons = 2;
+        // private bool massBalloonPrevention = true;
+        // public float balloonTimer = 10;
+
+
+
         // cinemachine
         private float _cinemachineTargetYaw;
         private float _cinemachineTargetPitch;
@@ -346,6 +355,32 @@ namespace StarterAssets
                 _animator.SetFloat(_animIDSpeed, _animationBlend);
                 _animator.SetFloat(_animIDMotionSpeed, inputMagnitude);
             }
+
+            // Spawn balloon if correct button pressed (LShift)
+            // if (_input.sprint && numBalloons > 0 && massBalloonPrevention)
+            // {
+            //     spawnBalloon();
+            //     numBalloons -= 1;
+            //     massBalloonPrevention = false;
+            // }
+            // if (!_input.sprint)
+            // {
+            //     massBalloonPrevention = true;
+            // }
+
+            
+            // print("Balloons: " + numBalloons);
+            // print("Timer: " + balloonTimer);
+            // if(numBalloons <= 1)
+            // {
+            //     balloonTimer -= Time.deltaTime;
+            //     if (balloonTimer <= 0)
+            //     {
+            //         numBalloons += 1;
+            //         balloonTimer = 3;
+            //     }
+            // }
+
         }
 
         private void JumpAndGravity()
@@ -392,7 +427,7 @@ namespace StarterAssets
             {
                 if (_input.jump){
                     if (useableBallons.Count != 0){
-                        Instantiate((GameObject)useableBallons[0],transform.position + new Vector3(0.0f,-0.1f,0.0f),transform.rotation);
+                        Instantiate((GameObject)useableBallons[0],transform.position + new Vector3(0.0f,-0.2f,0.0f),transform.rotation);
                         useableBallons.RemoveAt(0);
                     }
                 }
@@ -470,5 +505,10 @@ namespace StarterAssets
                 AudioSource.PlayClipAtPoint(LandingAudioClip, transform.TransformPoint(_controller.center), FootstepAudioVolume);
             }
         }
+
+        // private void spawnBalloon()
+        // {
+        //     Instantiate(balloon, this.transform.position, this.transform.rotation);
+        // }
     }
 }

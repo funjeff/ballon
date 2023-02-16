@@ -1,4 +1,6 @@
 ﻿using UnityEngine;
+using System.Collections;
+using System.Collections.Generic; 
 #if ENABLE_INPUT_SYSTEM && STARTER_ASSETS_PACKAGES_CHECKED
 using UnityEngine.InputSystem;
 #endif
@@ -72,6 +74,13 @@ namespace StarterAssets
         [Tooltip("For locking the camera position on all axis")]
         public bool LockCameraPosition = false;
 
+        [Header("BALLONS")]
+        [Tooltip("what ballons you currently have avilable")]
+        public List <GameObject> heldBallons = new List<GameObject>();
+        private List <GameObject> useableBallons = new List<GameObject>();
+
+                
+
         // cinemachine
         private float _cinemachineTargetYaw;
         private float _cinemachineTargetPitch;
@@ -104,6 +113,13 @@ namespace StarterAssets
         private GameObject _mainCamera;
 
         private const float _threshold = 0.01f;
+
+        private bool isDiving = false;
+        private float diveSpeed = 10.0f;
+        private float diveFallSpeed = 0.0f;
+
+        Vector3 diveDir = new Vector3(0.0f,0.0f,0.0f);
+        
 
         private bool _hasAnimator;
 
@@ -142,6 +158,8 @@ namespace StarterAssets
 			Debug.LogError( "Starter Assets package is missing dependencies. Please use Tools/Starter Assets/Reinstall Dependencies to fix it");
 #endif
 
+            useableBallons = new List <GameObject>();
+            useableBallons.AddRange(heldBallons);
             AssignAnimationIDs();
 
             // reset our timeouts on start
@@ -177,8 +195,18 @@ namespace StarterAssets
             // set sphere position, with offset
             Vector3 spherePosition = new Vector3(transform.position.x, transform.position.y - GroundedOffset,
                 transform.position.z);
+            
+            bool oldGrounded = Grounded;
+
             Grounded = Physics.CheckSphere(spherePosition, GroundedRadius, GroundLayers,
                 QueryTriggerInteraction.Ignore);
+
+            //we have just hit ground
+            if (!oldGrounded && Grounded){
+                useableBallons = new List <GameObject>();
+                useableBallons.AddRange(heldBallons);
+                isDiving = false;
+            }
 
             // update animator if using character
             if (_hasAnimator)
@@ -210,6 +238,21 @@ namespace StarterAssets
 
         private void Move()
         {
+            bool startedDive = false;
+            if (_input.dive && !isDiving){
+                isDiving = true;
+                _input.dive = false;
+                diveSpeed = 2.0f;
+                diveFallSpeed = 0.0f;
+                startedDive = true;
+                if(Grounded){
+                    _verticalVelocity = 3;
+                }
+            }
+            if (_input.dive && isDiving){
+                isDiving = false;
+                _input.dive = false;
+            }
             // set target speed based on move speed, sprint speed and if sprint is pressed
             float targetSpeed = MoveSpeed;
 
@@ -217,8 +260,9 @@ namespace StarterAssets
 
             // note: Vector2's == operator uses approximation so is not floating point error prone, and is cheaper than magnitude
             // if there is no input, set the target speed to 0
-            if (_input.move == Vector2.zero) targetSpeed = 0.0f;
+            if (_input.move == Vector2.zero && !isDiving) targetSpeed = 0.0f;
 
+            
             // a reference to the players current horizontal velocity
             float currentHorizontalSpeed = new Vector3(_controller.velocity.x, 0.0f, _controller.velocity.z).magnitude;
 
@@ -226,11 +270,12 @@ namespace StarterAssets
             float inputMagnitude = _input.analogMovement ? _input.move.magnitude : 1f;
 
             // accelerate or decelerate to target speed
-            if (currentHorizontalSpeed < targetSpeed - speedOffset ||
-                currentHorizontalSpeed > targetSpeed + speedOffset)
+            if ((currentHorizontalSpeed < targetSpeed - speedOffset ||
+                currentHorizontalSpeed > targetSpeed + speedOffset) && !isDiving)
             {
                 // creates curved result rather than a linear one giving a more organic speed change
                 // note T in Lerp is clamped, so we don't need to clamp our speed
+                
                 _speed = Mathf.Lerp(currentHorizontalSpeed, targetSpeed * inputMagnitude,
                     Time.deltaTime * SpeedChangeRate);
 
@@ -242,31 +287,58 @@ namespace StarterAssets
                 _speed = targetSpeed;
             }
 
-            _animationBlend = Mathf.Lerp(_animationBlend, targetSpeed, Time.deltaTime * SpeedChangeRate);
-            if (_animationBlend < 0.01f) _animationBlend = 0f;
+            if (isDiving){
+                _speed = _speed *diveSpeed;
+               
+               
+            }
+
+           // _animationBlend = Mathf.Lerp(_animationBlend, targetSpeed, Time.deltaTime * SpeedChangeRate);
+           // if (_animationBlend < 0.01f) _animationBlend = 0f;
 
             // normalise input direction
             Vector3 inputDirection = new Vector3(_input.move.x, 0.0f, _input.move.y).normalized;
 
+            if (startedDive){
+                diveDir = inputDirection;
+            }
             // note: Vector2's != operator uses approximation so is not floating point error prone, and is cheaper than magnitude
             // if there is a move input rotate player when the player is moving
-            if (_input.move != Vector2.zero)
-            {
-                _targetRotation = Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg +
-                                  _mainCamera.transform.eulerAngles.y;
-                float rotation = Mathf.SmoothDampAngle(transform.eulerAngles.y, _targetRotation, ref _rotationVelocity,
-                    RotationSmoothTime);
+            if (!isDiving){
+                if (_input.move != Vector2.zero)
+                {
+                    _targetRotation = Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg +
+                                    _mainCamera.transform.eulerAngles.y;
+                    float rotation = Mathf.SmoothDampAngle(transform.eulerAngles.y, _targetRotation, ref _rotationVelocity,
+                        RotationSmoothTime);
 
-                // rotate to face input direction relative to camera position
-                transform.rotation = Quaternion.Euler(0.0f, rotation, 0.0f);
+                    // rotate to face input direction relative to camera position
+                    transform.rotation = Quaternion.Euler(0.0f, rotation, 0.0f);
+                }
+            } else {
+                    _targetRotation = Mathf.Atan2(diveDir.x, diveDir.z) * Mathf.Rad2Deg +
+                                    _mainCamera.transform.eulerAngles.y;
+                    float rotation = Mathf.SmoothDampAngle(transform.eulerAngles.y, _targetRotation, ref _rotationVelocity,
+                        RotationSmoothTime);
+
+                    // rotate to face input direction relative to camera position
+                    transform.rotation = Quaternion.Euler(0.0f, rotation, 0.0f);
             }
 
 
             Vector3 targetDirection = Quaternion.Euler(0.0f, _targetRotation, 0.0f) * Vector3.forward;
 
+            
+
             // move the player
-            _controller.Move(targetDirection.normalized * (_speed * Time.deltaTime) +
+            if (!isDiving){
+                _controller.Move(targetDirection.normalized * (_speed * Time.deltaTime) +
                              new Vector3(0.0f, _verticalVelocity, 0.0f) * Time.deltaTime);
+            } else {
+                _controller.Move(targetDirection.normalized * (_speed * Time.deltaTime) +
+                             new Vector3(0.0f, _verticalVelocity, 0.0f) * Time.deltaTime);
+            }
+            
 
             // update animator if using character
             if (_hasAnimator)
@@ -308,6 +380,7 @@ namespace StarterAssets
                         _animator.SetBool(_animIDJump, true);
                     }
                 }
+                _input.jump = false;
 
                 // jump timeout
                 if (_jumpTimeoutDelta >= 0.0f)
@@ -317,6 +390,12 @@ namespace StarterAssets
             }
             else
             {
+                if (_input.jump){
+                    if (useableBallons.Count != 0){
+                        Instantiate((GameObject)useableBallons[0],transform.position + new Vector3(0.0f,-0.1f,0.0f),transform.rotation);
+                        useableBallons.RemoveAt(0);
+                    }
+                }
                 // reset the jump timeout timer
                 _jumpTimeoutDelta = JumpTimeout;
 

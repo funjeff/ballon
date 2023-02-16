@@ -6,6 +6,11 @@ using StarterAssets;
 public class Ballon : MonoBehaviour
 {
     public float ballonStrength = 2.4f;
+    public bool playerSpawned = false;
+
+     public Ballon(){
+
+     }
     // Start is called before the first frame update
     void Start()
     {

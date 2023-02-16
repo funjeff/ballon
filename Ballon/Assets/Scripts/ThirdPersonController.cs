@@ -325,8 +325,10 @@ namespace StarterAssets
                     transform.rotation = Quaternion.Euler(0.0f, rotation, 0.0f);
                 }
             } else {
-                    _targetRotation = Mathf.Atan2(diveDir.x, diveDir.z) * Mathf.Rad2Deg +
+                    if (startedDive){
+                        _targetRotation = Mathf.Atan2(diveDir.x, diveDir.z) * Mathf.Rad2Deg +
                                     _mainCamera.transform.eulerAngles.y;
+                    }
                     float rotation = Mathf.SmoothDampAngle(transform.eulerAngles.y, _targetRotation, ref _rotationVelocity,
                         RotationSmoothTime);
 
